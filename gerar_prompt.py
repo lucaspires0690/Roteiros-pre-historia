@@ -39,6 +39,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 POOLS_PATH = os.path.join(BASE_DIR, "pools.json")
 HISTORICO_PATH = os.path.join(BASE_DIR, "historico_roteiros.json")
 SAIDA_PATH = os.path.join(BASE_DIR, "prompt_pronto.txt")
+REVISAO_PATH = os.path.join(BASE_DIR, "revisao_pronta.txt")
 
 JANELA_REPETICAO = 6        # quantos roteiros recentes considerar para evitar repetição
 QTD_CASOS_SUGERIDOS = 6     # quantos casos históricos sugerir por roteiro
@@ -444,6 +445,25 @@ Nenhuma explicação, comentário, observação, análise, cabeçalho ou marcaç
 
 
 # ----------------------------------------------------------------------
+# MONTAGEM DA MENSAGEM DE REVISÃO (usar DEPOIS que o Claude entregar o roteiro)
+# ----------------------------------------------------------------------
+
+def montar_mensagem_revisao(params):
+    """Corrigir um texto que já existe é uma tarefa muito mais confiável
+    pra um LLM do que se autoauditar em silêncio enquanto escreve. Por
+    isso isto é uma SEGUNDA mensagem, pra colar depois que o roteiro já
+    foi entregue — não faz parte do prompt inicial."""
+    return f"""Revise o roteiro que você acabou de escrever para este vídeo, sem reescrevê-lo do zero — corrija apenas o que estiver fora do esperado:
+
+1. Contagem de palavras: confira se o roteiro tem entre {params['palavras_min']} e {params['palavras_max']} palavras. Se estiver abaixo de {params['palavras_min']}, expanda as partes mais fracas (mais detalhe sensorial, mais profundidade no Bloco 3 ou no encerramento).
+2. Parágrafos: nenhum parágrafo pode ter mais de 3 frases. Quebre qualquer parágrafo mais longo em parágrafos menores, mantendo o conteúdo e a ordem das frases.
+3. Humor situacional: confirme se existem pelo menos {params['humor_min']} momentos de humor (comparação irônica entre o comportamento ancestral e o moderno) distribuídos ao longo do roteiro, não concentrados num só trecho. Se faltar, adicione.
+4. Micro-histórias: confirme se existem entre 3 e 5 micro-histórias (cenas concretas de um indivíduo ou grupo), cada uma com 30 a 80 palavras. Se houver menos de 3, ou se alguma passar de 80 palavras, ajuste.
+
+Entregue apenas o roteiro corrigido e completo. Sem comentários sobre o que foi revisado, sem explicações, sem marcação de blocos."""
+
+
+# ----------------------------------------------------------------------
 # MONTAGEM DO PROMPT FINAL
 # ----------------------------------------------------------------------
 
@@ -525,9 +545,12 @@ def main():
     )
 
     prompt_final = montar_prompt(params)
+    mensagem_revisao = montar_mensagem_revisao(params)
 
     with open(SAIDA_PATH, "w", encoding="utf-8") as f:
         f.write(prompt_final)
+    with open(REVISAO_PATH, "w", encoding="utf-8") as f:
+        f.write(mensagem_revisao)
 
     novo_registro = {
         "id": len(historico["roteiros"]) + 1,
@@ -548,15 +571,17 @@ def main():
 
     print(f"✅ Prompt gerado com sucesso para o título:")
     print(f"   \"{titulo}\"")
-    print(f"📄 Arquivo pronto para copiar: {SAIDA_PATH}")
+    print(f"📄 Prompt principal: {SAIDA_PATH}")
+    print(f"📄 Mensagem de revisão (usar DEPOIS do roteiro pronto): {REVISAO_PATH}")
     print(f"🗂️  Histórico atualizado: {HISTORICO_PATH}")
     print(f"\nParâmetros calculados desta rodada:")
     print(f"   Duração: {params['minutos']} min → {params['palavras_alvo']} palavras alvo ({params['palavras_min']}–{params['palavras_max']})")
     print(f"   Perguntas retóricas mínimas: {params['perguntas_min']} | Momentos de humor mínimos: {params['humor_min']}")
     print(f"   Limite de anáfora: {params['limite_anafora']}")
     print(f"   Distribuição de blocos: {params['distribuicao']}")
-    print("\nAbra o prompt_pronto.txt, copie tudo e cole numa conversa nova do Claude.ai.")
-    print("O Claude já escreve direto — não precisa responder nada antes.")
+    print("\n1) Abra o prompt_pronto.txt, copie tudo e cole numa conversa nova do Claude.ai.")
+    print("2) Depois que o Claude entregar o roteiro, cole o conteúdo de revisao_pronta.txt")
+    print("   na mesma conversa, como uma segunda mensagem, pra ele revisar o que falhar.")
 
 
 if __name__ == "__main__":

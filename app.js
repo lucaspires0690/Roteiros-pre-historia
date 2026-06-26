@@ -191,6 +191,17 @@ function calcularPalavrasPorBloco(distribuicaoPct, palavrasAlvo) {
   return resultado;
 }
 
+function montarMensagemRevisao(params) {
+  return `Revise o roteiro que você acabou de escrever para este vídeo, sem reescrevê-lo do zero — corrija apenas o que estiver fora do esperado:
+
+1. Contagem de palavras: confira se o roteiro tem entre ${params.palavrasMin} e ${params.palavrasMax} palavras. Se estiver abaixo de ${params.palavrasMin}, expanda as partes mais fracas (mais detalhe sensorial, mais profundidade no Bloco 3 ou no encerramento).
+2. Parágrafos: nenhum parágrafo pode ter mais de 3 frases. Quebre qualquer parágrafo mais longo em parágrafos menores, mantendo o conteúdo e a ordem das frases.
+3. Humor situacional: confirme se existem pelo menos ${params.humorMin} momentos de humor (comparação irônica entre o comportamento ancestral e o moderno) distribuídos ao longo do roteiro, não concentrados num só trecho. Se faltar, adicione.
+4. Micro-histórias: confirme se existem entre 3 e 5 micro-histórias (cenas concretas de um indivíduo ou grupo), cada uma com 30 a 80 palavras. Se houver menos de 3, ou se alguma passar de 80 palavras, ajuste.
+
+Entregue apenas o roteiro corrigido e completo. Sem comentários sobre o que foi revisado, sem explicações, sem marcação de blocos.`;
+}
+
 function montarPrompt(params) {
   let texto = TEMPLATE;
   const substituicoes = {
@@ -236,6 +247,9 @@ const cartaoResultado = document.getElementById("cartao-resultado");
 const resultadoPrompt = document.getElementById("resultado-prompt");
 const parametrosDetalhe = document.getElementById("parametros-detalhe");
 const btnCopiar = document.getElementById("btn-copiar");
+const cartaoRevisao = document.getElementById("cartao-revisao");
+const resultadoRevisao = document.getElementById("resultado-revisao");
+const btnCopiarRevisao = document.getElementById("btn-copiar-revisao");
 
 btnGerar.addEventListener("click", async () => {
   const titulo = inputTitulo.value.trim();
@@ -311,6 +325,9 @@ btnGerar.addEventListener("click", async () => {
     );
     cartaoResultado.classList.remove("oculto");
 
+    resultadoRevisao.value = montarMensagemRevisao(params);
+    cartaoRevisao.classList.remove("oculto");
+
     await addDoc(collection(db, "historico"), {
       titulo,
       criadoEm: serverTimestamp(),
@@ -345,6 +362,20 @@ btnCopiar.addEventListener("click", async () => {
   }
   setTimeout(() => {
     btnCopiar.textContent = "Copiar";
+  }, 1500);
+});
+
+btnCopiarRevisao.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(resultadoRevisao.value);
+    btnCopiarRevisao.textContent = "Copiado!";
+  } catch {
+    resultadoRevisao.select();
+    document.execCommand("copy");
+    btnCopiarRevisao.textContent = "Copiado!";
+  }
+  setTimeout(() => {
+    btnCopiarRevisao.textContent = "Copiar";
   }, 1500);
 });
 
