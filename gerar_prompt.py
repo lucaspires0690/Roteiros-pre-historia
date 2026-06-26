@@ -1,4 +1,150 @@
-export const TEMPLATE = `VOCÊ É: O roteirista principal de um canal de YouTube sobre comportamento e cotidiano dos humanos primitivos.
+# -*- coding: utf-8 -*-
+"""
+Gerador de Prompt — Canal de Comportamento Humano Primitivo
+-------------------------------------------------------------
+Roda 100% local. Não usa nenhuma API de IA. Faz DUAS perguntas no
+terminal — o título do vídeo e a duração desejada em minutos — e já gera
+o prompt pronto, com a quantidade de palavras já calculada.
+
+O script decide a parte ESTRUTURAL do roteiro (limite de repetição
+anafórica, distribuição percentual dos 7 blocos, personagens/casos
+históricos a evitar com base no histórico, quantidade de palavras/
+perguntas retóricas/momentos de humor a partir da duração) e injeta o
+título informado diretamente no prompt, junto com uma instrução de
+ANÁLISE SEMÂNTICA DO TÍTULO (Video DNA): antes de escrever, o próprio
+Claude analisa o título e decide internamente categoria, emoção
+dominante, promessa narrativa e tom de narrador — sem nunca expor essa
+análise na resposta.
+
+O Claude não pergunta mais nada no chat — já recebe a quantidade de
+palavras calculada (minutos × palavras por minuto, com folga de ±10%) e
+escreve o roteiro direto.
+
+Como usar:
+    python3 gerar_prompt.py
+    (ele vai pedir o título e a duração em minutos no terminal)
+
+Arquivos usados (criados automaticamente se não existirem):
+    pools.json                -> bancos de casos históricos e arquétipos (editável)
+    historico_roteiros.json   -> memória do que já foi gerado (não edite manualmente)
+    prompt_pronto.txt         -> saída pronta para copiar e colar
+"""
+
+import json
+import os
+import random
+import datetime
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+POOLS_PATH = os.path.join(BASE_DIR, "pools.json")
+HISTORICO_PATH = os.path.join(BASE_DIR, "historico_roteiros.json")
+SAIDA_PATH = os.path.join(BASE_DIR, "prompt_pronto.txt")
+
+JANELA_REPETICAO = 6        # quantos roteiros recentes considerar para evitar repetição
+QTD_CASOS_SUGERIDOS = 6     # quantos casos históricos sugerir por roteiro
+QTD_ARQUETIPOS_SUGERIDOS = 6
+PALAVRAS_POR_MINUTO_PADRAO = 150   # média de referência para TTS — ajuste conforme sua voz/velocidade
+
+
+# ----------------------------------------------------------------------
+# UTILITÁRIOS DE ARQUIVO
+# ----------------------------------------------------------------------
+
+def carregar_json(caminho, padrao):
+    if not os.path.exists(caminho):
+        return padrao
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def salvar_json(caminho, dados):
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=2)
+
+
+def garantir_historico():
+    return carregar_json(HISTORICO_PATH, {"roteiros": []})
+
+
+def garantir_pools():
+    if not os.path.exists(POOLS_PATH):
+        raise FileNotFoundError(
+            "pools.json não encontrado. Coloque o arquivo pools.json "
+            "na mesma pasta deste script."
+        )
+    return carregar_json(POOLS_PATH, {})
+
+
+# ----------------------------------------------------------------------
+# LÓGICA DE VARIAÇÃO (evita repetir o que já foi usado recentemente)
+# ----------------------------------------------------------------------
+
+def itens_usados_recentemente(historico, campo, janela=JANELA_REPETICAO):
+    recentes = historico["roteiros"][-janela:]
+    usados = set()
+    for r in recentes:
+        usados.update(r.get(campo, []))
+    return usados
+
+
+def escolher_numero_sem_repetir(opcoes, historico, campo, janela=JANELA_REPETICAO):
+    recentes = [r.get(campo) for r in historico["roteiros"][-janela:]]
+    candidatos = [o for o in opcoes if o not in recentes]
+    if not candidatos:
+        candidatos = list(opcoes)
+    return random.choice(candidatos)
+
+
+def gerar_distribuicao_blocos():
+    """Varia a porcentagem de palavras por bloco em até ±15% do valor base,
+    depois normaliza para a soma dar exatamente 100%."""
+    base = {"B1": 10, "B2": 12, "B3": 33, "B4": 10, "B5": 11, "B6": 12, "B7": 12}
+    variado = {}
+    for bloco, pct in base.items():
+        margem = pct * 0.15
+        variado[bloco] = pct + random.uniform(-margem, margem)
+    soma = sum(variado.values())
+    fator = 100 / soma
+    for bloco in variado:
+        variado[bloco] = round(variado[bloco] * fator, 1)
+    return variado
+
+
+def escolher_lista_sem_repetir(pool, usados_recentes, quantidade):
+    disponiveis = [item for item in pool if item not in usados_recentes]
+    if len(disponiveis) < quantidade:
+        # o pool "esgotou" dentro da janela de repetição — recomeça o ciclo
+        disponiveis = list(pool)
+    random.shuffle(disponiveis)
+    return disponiveis[:quantidade]
+
+
+def calcular_parametros_de_duracao(minutos, ppm=PALAVRAS_POR_MINUTO_PADRAO):
+    """Converte minutos desejados em quantidade de palavras (±10%) e já
+    calcula o mínimo de perguntas retóricas e momentos de humor — tudo isso
+    é matemática determinística, então não faz sentido pedir pro Claude
+    calcular isso no chat."""
+    palavras_alvo = round(minutos * ppm)
+    palavras_min = round(palavras_alvo * 0.9)
+    palavras_max = round(palavras_alvo * 1.1)
+    perguntas_min = max(4, round(palavras_alvo / 300))
+    humor_min = max(2, round(palavras_alvo / 700))
+    return {
+        "minutos": minutos,
+        "ppm": ppm,
+        "palavras_alvo": palavras_alvo,
+        "palavras_min": palavras_min,
+        "palavras_max": palavras_max,
+        "perguntas_min": perguntas_min,
+        "humor_min": humor_min,
+    }
+
+
+# ----------------------------------------------------------------------
+# TEMPLATE DO PROMPT (com marcadores <<...>> substituídos em tempo de geração)
+# ----------------------------------------------------------------------
+
+TEMPLATE = """VOCÊ É: O roteirista principal de um canal de YouTube sobre comportamento e cotidiano dos humanos primitivos.
 Seu trabalho é transformar curiosidades sobre nossos ancestrais em narrativas envolventes, precisas e prontas para narração — fazendo o espectador sentir que está descobrindo algo que nunca soube, mas sempre quis saber.
 Você não apenas escreve roteiros.
 Você engenheira retenção por descoberta.
@@ -268,4 +414,116 @@ Máximo 3 frases por parágrafo. Quebra simples entre parágrafos. Frases curtas
 
 Execute silenciosamente todas as regras acima e entregue apenas o roteiro final pronto para narração.
 Nenhuma explicação, comentário, observação, análise, cabeçalho ou marcação estrutural antes, durante ou depois do roteiro.
-`;
+"""
+
+
+# ----------------------------------------------------------------------
+# MONTAGEM DO PROMPT FINAL
+# ----------------------------------------------------------------------
+
+def montar_prompt(params):
+    texto = TEMPLATE
+    substituicoes = {
+        "<<TITULO>>": params["titulo"],
+        "<<MINUTOS>>": str(params["minutos"]),
+        "<<PPM>>": str(params["ppm"]),
+        "<<PALAVRAS_ALVO>>": str(params["palavras_alvo"]),
+        "<<PALAVRAS_MIN>>": str(params["palavras_min"]),
+        "<<PALAVRAS_MAX>>": str(params["palavras_max"]),
+        "<<PERGUNTAS_MIN>>": str(params["perguntas_min"]),
+        "<<HUMOR_MIN>>": str(params["humor_min"]),
+        "<<LIMITE_ANAFORA>>": str(params["limite_anafora"]),
+        "<<B1>>": str(params["distribuicao"]["B1"]),
+        "<<B2>>": str(params["distribuicao"]["B2"]),
+        "<<B3>>": str(params["distribuicao"]["B3"]),
+        "<<B4>>": str(params["distribuicao"]["B4"]),
+        "<<B5>>": str(params["distribuicao"]["B5"]),
+        "<<B6>>": str(params["distribuicao"]["B6"]),
+        "<<B7>>": str(params["distribuicao"]["B7"]),
+        "<<ARQUETIPOS_EVITAR>>": "\n".join(f"- {a}" for a in params["arquetipos_evitar"]),
+        "<<CASOS_EVITAR>>": "\n".join(f"- {c}" for c in params["casos_evitar"]),
+    }
+    for chave, valor in substituicoes.items():
+        texto = texto.replace(chave, valor)
+    return texto
+
+
+# ----------------------------------------------------------------------
+# PROGRAMA PRINCIPAL
+# ----------------------------------------------------------------------
+
+def main():
+    print("=== Gerador de Prompt — Canal Humanos Primitivos ===\n")
+
+    titulo = input("📝 Qual é o título exato do vídeo? ").strip()
+    while not titulo:
+        titulo = input("O título não pode ficar em branco. Digite o título do vídeo: ").strip()
+
+    while True:
+        bruto = input("⏱️  Quantos minutos de narração você quer (pode variar ±10%)? ").strip()
+        try:
+            minutos = float(bruto.replace(",", "."))
+            if minutos > 0:
+                break
+        except ValueError:
+            pass
+        print("Digite um número válido de minutos (ex.: 9, 10, 12.5).")
+    print()
+
+    pools = garantir_pools()
+    historico = garantir_historico()
+
+    params = {
+        "titulo": titulo,
+        "limite_anafora": escolher_numero_sem_repetir([2, 3, 4], historico, "limite_anafora"),
+        "distribuicao": gerar_distribuicao_blocos(),
+    }
+    params.update(calcular_parametros_de_duracao(minutos))
+
+    arquetipos_usados = itens_usados_recentemente(historico, "arquetipos_usados")
+    casos_usados = itens_usados_recentemente(historico, "casos_usados")
+
+    params["arquetipos_evitar"] = escolher_lista_sem_repetir(
+        pools.get("arquetipos_personagens", []), arquetipos_usados, QTD_ARQUETIPOS_SUGERIDOS
+    )
+    params["casos_evitar"] = escolher_lista_sem_repetir(
+        pools.get("casos_historicos", []), casos_usados, QTD_CASOS_SUGERIDOS
+    )
+
+    prompt_final = montar_prompt(params)
+
+    with open(SAIDA_PATH, "w", encoding="utf-8") as f:
+        f.write(prompt_final)
+
+    novo_registro = {
+        "id": len(historico["roteiros"]) + 1,
+        "data": datetime.datetime.now().isoformat(timespec="seconds"),
+        "titulo": titulo,
+        "minutos": params["minutos"],
+        "palavras_alvo": params["palavras_alvo"],
+        "limite_anafora": params["limite_anafora"],
+        "distribuicao_blocos": params["distribuicao"],
+        # OBS: estes são os itens SUGERIDOS ao Claude neste prompt, usados como
+        # aproximação do que provavelmente entrou no roteiro final, já que este
+        # script não lê o roteiro que o Claude.ai realmente gerar.
+        "arquetipos_usados": params["arquetipos_evitar"][:3],
+        "casos_usados": params["casos_evitar"][:3],
+    }
+    historico["roteiros"].append(novo_registro)
+    salvar_json(HISTORICO_PATH, historico)
+
+    print(f"✅ Prompt gerado com sucesso para o título:")
+    print(f"   \"{titulo}\"")
+    print(f"📄 Arquivo pronto para copiar: {SAIDA_PATH}")
+    print(f"🗂️  Histórico atualizado: {HISTORICO_PATH}")
+    print(f"\nParâmetros calculados desta rodada:")
+    print(f"   Duração: {params['minutos']} min → {params['palavras_alvo']} palavras alvo ({params['palavras_min']}–{params['palavras_max']})")
+    print(f"   Perguntas retóricas mínimas: {params['perguntas_min']} | Momentos de humor mínimos: {params['humor_min']}")
+    print(f"   Limite de anáfora: {params['limite_anafora']}")
+    print(f"   Distribuição de blocos: {params['distribuicao']}")
+    print("\nAbra o prompt_pronto.txt, copie tudo e cole numa conversa nova do Claude.ai.")
+    print("O Claude já escreve direto — não precisa responder nada antes.")
+
+
+if __name__ == "__main__":
+    main()

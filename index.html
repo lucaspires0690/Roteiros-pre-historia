@@ -53,6 +53,20 @@
     <div class="cartao">
       <label for="input-titulo">Título exato do vídeo</label>
       <input type="text" id="input-titulo" placeholder="Ex.: O animal que enganou todos os predadores da pré-história" />
+
+      <label for="input-minutos">Duração desejada (minutos)</label>
+      <input type="number" id="input-minutos" min="1" step="0.5" value="10" />
+
+      <details class="parametros">
+        <summary>Configuração avançada — palavras por minuto</summary>
+        <p class="dica">
+          Quantas palavras o seu TTS narra por minuto, em média. Pra calibrar
+          com precisão: pegue um roteiro já narrado e divida a contagem de
+          palavras pela duração do áudio em minutos.
+        </p>
+        <input type="number" id="input-ppm" min="50" step="5" value="150" />
+      </details>
+
       <button id="btn-gerar" class="btn btn-primary">Gerar prompt</button>
       <p class="status" id="status-gerar"></p>
     </div>

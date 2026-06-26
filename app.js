@@ -49,6 +49,16 @@ const db = getFirestore(app);
 const JANELA_REPETICAO = 6;
 const QTD_ARQUETIPOS_SUGERIDOS = 6;
 const QTD_CASOS_SUGERIDOS = 6;
+const PPM_PADRAO = 150; // palavras por minuto — referência de TTS, ajustável na tela
+
+// ---------- persistência local do PPM calibrado (não vai pro Firestore) ----------
+const inputPpm = document.getElementById("input-ppm");
+const ppmSalvo = localStorage.getItem("storyengine_ppm");
+if (ppmSalvo) inputPpm.value = ppmSalvo;
+inputPpm.addEventListener("change", () => {
+  const valor = parseFloat(inputPpm.value);
+  if (valor > 0) localStorage.setItem("storyengine_ppm", String(valor));
+});
 
 // ============================================================
 // AUTENTICAÇÃO
@@ -164,10 +174,26 @@ function escolherListaSemRepetir(pool, usadosRecentes, quantidade) {
   return shuffle(disponiveis).slice(0, quantidade);
 }
 
+function calcularParametrosDeDuracao(minutos, ppm) {
+  const palavrasAlvo = Math.round(minutos * ppm);
+  const palavrasMin = Math.round(palavrasAlvo * 0.9);
+  const palavrasMax = Math.round(palavrasAlvo * 1.1);
+  const perguntasMin = Math.max(4, Math.round(palavrasAlvo / 300));
+  const humorMin = Math.max(2, Math.round(palavrasAlvo / 700));
+  return { minutos, ppm, palavrasAlvo, palavrasMin, palavrasMax, perguntasMin, humorMin };
+}
+
 function montarPrompt(params) {
   let texto = TEMPLATE;
   const substituicoes = {
     "<<TITULO>>": params.titulo,
+    "<<MINUTOS>>": String(params.minutos),
+    "<<PPM>>": String(params.ppm),
+    "<<PALAVRAS_ALVO>>": String(params.palavrasAlvo),
+    "<<PALAVRAS_MIN>>": String(params.palavrasMin),
+    "<<PALAVRAS_MAX>>": String(params.palavrasMax),
+    "<<PERGUNTAS_MIN>>": String(params.perguntasMin),
+    "<<HUMOR_MIN>>": String(params.humorMin),
     "<<LIMITE_ANAFORA>>": String(params.limite_anafora),
     "<<B1>>": String(params.distribuicao.B1),
     "<<B2>>": String(params.distribuicao.B2),
@@ -198,8 +224,16 @@ const btnCopiar = document.getElementById("btn-copiar");
 
 btnGerar.addEventListener("click", async () => {
   const titulo = inputTitulo.value.trim();
+  const minutos = parseFloat(document.getElementById("input-minutos").value);
+  const ppm = parseFloat(document.getElementById("input-ppm").value) || PPM_PADRAO;
+
   if (!titulo) {
     statusGerar.textContent = "Digite o título do vídeo.";
+    statusGerar.className = "status erro";
+    return;
+  }
+  if (!minutos || minutos <= 0) {
+    statusGerar.textContent = "Digite uma duração válida em minutos.";
     statusGerar.className = "status erro";
     return;
   }
@@ -220,8 +254,11 @@ btnGerar.addEventListener("click", async () => {
     const arquetiposUsadosRecentes = itensUsadosRecentemente(historicoRecente, "arquetipos_usados");
     const casosUsadosRecentes = itensUsadosRecentemente(historicoRecente, "casos_usados");
 
+    const duracao = calcularParametrosDeDuracao(minutos, ppm);
+
     const params = {
       titulo,
+      ...duracao,
       limite_anafora: escolherNumeroSemRepetir([2, 3, 4], historicoRecente, "limite_anafora"),
       distribuicao: gerarDistribuicaoBlocos(),
       arquetipos_evitar: escolherListaSemRepetir(
@@ -240,6 +277,13 @@ btnGerar.addEventListener("click", async () => {
     resultadoPrompt.value = promptFinal;
     parametrosDetalhe.textContent = JSON.stringify(
       {
+        minutos: params.minutos,
+        ppm: params.ppm,
+        palavras_alvo: params.palavrasAlvo,
+        palavras_min: params.palavrasMin,
+        palavras_max: params.palavrasMax,
+        perguntas_min: params.perguntasMin,
+        humor_min: params.humorMin,
         limite_anafora: params.limite_anafora,
         distribuicao_blocos: params.distribuicao,
         arquetipos_evitar: params.arquetipos_evitar,
@@ -253,6 +297,8 @@ btnGerar.addEventListener("click", async () => {
     await addDoc(collection(db, "historico"), {
       titulo,
       criadoEm: serverTimestamp(),
+      minutos: params.minutos,
+      palavras_alvo: params.palavrasAlvo,
       limite_anafora: params.limite_anafora,
       distribuicao_blocos: params.distribuicao,
       arquetipos_usados: params.arquetipos_evitar.slice(0, 3),
@@ -419,9 +465,12 @@ async function carregarHistorico(reiniciar = false) {
     item.className = "item-historico";
     const dataFormatada =
       r.criadoEm && r.criadoEm.toDate ? r.criadoEm.toDate().toLocaleString("pt-BR") : "—";
+    const duracaoTexto = r.minutos
+      ? `${r.minutos} min (${r.palavras_alvo ?? "?"} palavras) · `
+      : "";
     item.innerHTML = `
       <div class="item-titulo">${escaparHtml(r.titulo || "(sem título)")}</div>
-      <div class="item-meta">${dataFormatada} · anáfora ${r.limite_anafora ?? "—"} · arquétipos: ${escaparHtml(
+      <div class="item-meta">${dataFormatada} · ${duracaoTexto}anáfora ${r.limite_anafora ?? "—"} · arquétipos: ${escaparHtml(
       (r.arquetipos_usados || []).join(", ")
     )} · casos: ${escaparHtml((r.casos_usados || []).join(", "))}</div>
     `;
