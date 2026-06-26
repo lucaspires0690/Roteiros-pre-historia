@@ -52,13 +52,24 @@ configuração.
    `firestore.rules` deste projeto, substituindo o que já está lá.
    Clique em **Publish**.
 
-## Passo 3 — Ativar login (Authentication)
+## Passo 3 — Ativar login com Google (Authentication)
 
-1. Menu lateral: **Build → Authentication → Get started**.
-2. Na aba **Sign-in method**, ative o provedor **Email/Password**.
-3. Vá na aba **Users → Add user** e crie o seu próprio usuário (o e-mail
-   e senha que você vai usar para logar no app). Não existe cadastro
-   público — só você (ou quem você criar manualmente aqui) consegue entrar.
+1. Menu lateral: **Build → Authentication → Get started** (se ainda não tiver feito).
+2. Na aba **Sign-in method**, ative o provedor **Google** (não Email/Password).
+   Ao ativar, ele pede um "e-mail de suporte do projeto" — pode usar o seu
+   mesmo e-mail.
+3. Ainda em Authentication, vá na aba **Settings → Authorized domains** e
+   clique em **Add domain**. Adicione o domínio do seu GitHub Pages, por
+   exemplo: `lucaspires0690.github.io` (sem `https://`, sem barra no final).
+   Sem esse passo, o login com Google **não funciona** fora do
+   `localhost` — é um erro comum, então não pule essa parte.
+
+O app está travado para aceitar login **apenas** do e-mail
+`lucasserip1990@gmail.com` — isso está em dois lugares: na regra do
+Firestore (`firestore.rules`, é a proteção real) e no `app.js` (que
+desloga automaticamente qualquer outra conta Google, por clareza). Se um
+dia você quiser trocar ou adicionar outro e-mail autorizado, edite os dois
+arquivos.
 
 ## Passo 4 — Colar sua configuração no app.js
 

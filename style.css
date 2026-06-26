@@ -240,6 +240,17 @@ button {
 
 .btn-primary:hover { filter: brightness(1.08); }
 
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.icone-google { flex-shrink: 0; background: #fff; border-radius: 3px; }
+
 .btn-secundario {
   background: var(--bg-input);
   border-color: var(--borda);

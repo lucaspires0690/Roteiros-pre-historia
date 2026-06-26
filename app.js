@@ -18,7 +18,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/fireba
 import {
   getAuth,
   onAuthStateChanged,
-  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import {
@@ -52,32 +53,40 @@ const QTD_CASOS_SUGERIDOS = 6;
 // ============================================================
 // AUTENTICAÇÃO
 // ============================================================
+// Só este e-mail tem acesso ao app. Mesmo que alguém ache a URL e tente
+// logar com outra conta Google, ele é deslogado automaticamente — e a
+// regra do Firestore (firestore.rules) também bloqueia no banco de dados,
+// que é onde a proteção de verdade está.
+const EMAIL_PERMITIDO = "lucasserip1990@gmail.com";
+
 const telaLogin = document.getElementById("tela-login");
 const telaApp = document.getElementById("tela-app");
-const formLogin = document.getElementById("form-login");
+const btnGoogleLogin = document.getElementById("btn-google-login");
 const loginErro = document.getElementById("login-erro");
 const btnLogout = document.getElementById("btn-logout");
 
-formLogin.addEventListener("submit", async (e) => {
-  e.preventDefault();
+btnGoogleLogin.addEventListener("click", async () => {
   loginErro.textContent = "";
-  const email = document.getElementById("login-email").value.trim();
-  const senha = document.getElementById("login-senha").value;
   try {
-    await signInWithEmailAndPassword(auth, email, senha);
+    await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (err) {
-    loginErro.textContent = "E-mail ou senha incorretos.";
+    console.error(err);
+    loginErro.textContent = "Não foi possível entrar com o Google. Tente novamente.";
   }
 });
 
 btnLogout.addEventListener("click", () => signOut(auth));
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
+onAuthStateChanged(auth, async (user) => {
+  if (user && user.email === EMAIL_PERMITIDO) {
     telaLogin.classList.add("oculto");
     telaApp.classList.remove("oculto");
     carregarPools();
     carregarHistorico(true);
+  } else if (user) {
+    // logou com uma conta Google diferente da autorizada
+    loginErro.textContent = `O e-mail ${user.email} não tem acesso a este app.`;
+    await signOut(auth);
   } else {
     telaApp.classList.add("oculto");
     telaLogin.classList.remove("oculto");
