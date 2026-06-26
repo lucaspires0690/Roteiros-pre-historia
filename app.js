@@ -575,3 +575,82 @@ document.getElementById("btn-importar-historico").addEventListener("click", asyn
     statusImportarHistorico.className = "status erro";
   }
 });
+
+// ============================================================
+// ABA: FORMATAR PARÁGRAFOS (puro processamento de texto, sem IA)
+// ============================================================
+
+function dividirEmFrases(paragrafo) {
+  // Quebra em frases no fim de . ! ou ?, seguido de espaço e do início de
+  // uma nova frase (letra maiúscula, número, aspas ou travessão).
+  // Isso evita quebrar números como "300.000" (sem espaço depois do ponto)
+  // e evita tratar reticências seguidas de minúscula como fim de frase.
+  const partes = paragrafo.split(/(?<=[.!?])\s+(?=[A-ZÀ-Ý0-9"“(\u2014\u2013])/);
+  return partes.map((p) => p.trim()).filter(Boolean);
+}
+
+function formatarParagrafos(texto, maxFrasesPorParagrafo = 3) {
+  const paragrafosOriginais = texto
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const paragrafosFinais = [];
+  let totalAjustados = 0;
+
+  for (const paragrafo of paragrafosOriginais) {
+    const frases = dividirEmFrases(paragrafo);
+    if (frases.length <= maxFrasesPorParagrafo) {
+      paragrafosFinais.push(paragrafo);
+      continue;
+    }
+    totalAjustados++;
+    for (let i = 0; i < frases.length; i += maxFrasesPorParagrafo) {
+      paragrafosFinais.push(frases.slice(i, i + maxFrasesPorParagrafo).join(" "));
+    }
+  }
+
+  return {
+    textoFormatado: paragrafosFinais.join("\n"),
+    totalAjustados,
+    totalParagrafosOriginais: paragrafosOriginais.length,
+  };
+}
+
+const entradaFormatar = document.getElementById("entrada-formatar");
+const btnFormatar = document.getElementById("btn-formatar");
+const statusFormatar = document.getElementById("status-formatar");
+const cartaoFormatado = document.getElementById("cartao-formatado");
+const resultadoFormatado = document.getElementById("resultado-formatado");
+const btnCopiarFormatado = document.getElementById("btn-copiar-formatado");
+
+btnFormatar.addEventListener("click", () => {
+  const texto = entradaFormatar.value.trim();
+  if (!texto) {
+    statusFormatar.textContent = "Cole o roteiro antes de formatar.";
+    statusFormatar.className = "status erro";
+    return;
+  }
+  const { textoFormatado, totalAjustados, totalParagrafosOriginais } = formatarParagrafos(texto);
+  resultadoFormatado.value = textoFormatado;
+  cartaoFormatado.classList.remove("oculto");
+  statusFormatar.textContent =
+    totalAjustados > 0
+      ? `${totalAjustados} de ${totalParagrafosOriginais} parágrafos tinham mais de 3 frases — todos ajustados.`
+      : "Nenhum parágrafo passava de 3 frases. Nada precisou ser alterado.";
+  statusFormatar.className = "status sucesso";
+});
+
+btnCopiarFormatado.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(resultadoFormatado.value);
+    btnCopiarFormatado.textContent = "Copiado!";
+  } catch {
+    resultadoFormatado.select();
+    document.execCommand("copy");
+    btnCopiarFormatado.textContent = "Copiado!";
+  }
+  setTimeout(() => {
+    btnCopiarFormatado.textContent = "Copiar";
+  }, 1500);
+});

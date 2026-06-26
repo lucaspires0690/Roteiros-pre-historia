@@ -46,6 +46,7 @@
     <button class="aba ativa" data-aba="gerar" role="tab" aria-selected="true">Gerar prompt</button>
     <button class="aba" data-aba="pools" role="tab" aria-selected="false">Bancos</button>
     <button class="aba" data-aba="historico" role="tab" aria-selected="false">Histórico</button>
+    <button class="aba" data-aba="formatar" role="tab" aria-selected="false">Formatar</button>
   </nav>
 
   <!-- ABA: GERAR -->
@@ -150,6 +151,32 @@
       </div>
       <div id="lista-historico" class="lista-historico"></div>
       <button id="btn-mais-historico" class="btn btn-secundario oculto">Carregar mais</button>
+    </div>
+  </div>
+
+  <!-- ABA: FORMATAR -->
+  <div class="painel oculto" data-painel="formatar">
+    <div class="cartao">
+      <div class="cartao-cabecalho">
+        <h2>Formatar parágrafos</h2>
+      </div>
+      <p class="dica">
+        Cole aqui o roteiro final (depois que o Claude já escreveu e, se você
+        usou, já revisou). Isso quebra qualquer parágrafo com mais de 3
+        frases em parágrafos menores — sem IA, sem chance de erro, só
+        processamento de texto puro. O conteúdo e a ordem das frases não mudam.
+      </p>
+      <textarea id="entrada-formatar" placeholder="Cole o roteiro completo aqui..." spellcheck="false"></textarea>
+      <button id="btn-formatar" class="btn btn-primary">Formatar parágrafos</button>
+      <p class="status" id="status-formatar"></p>
+    </div>
+
+    <div class="cartao oculto" id="cartao-formatado">
+      <div class="cartao-cabecalho">
+        <h2>Resultado formatado</h2>
+        <button id="btn-copiar-formatado" class="btn btn-ghost">Copiar</button>
+      </div>
+      <textarea id="resultado-formatado" readonly spellcheck="false"></textarea>
     </div>
   </div>
 </section>
