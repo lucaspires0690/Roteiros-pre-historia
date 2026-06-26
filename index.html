@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Story Engine — Humanos Primitivos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="ember" aria-hidden="true"></div>
+
+<!-- TELA DE LOGIN -->
+<section id="tela-login" class="tela tela-login">
+  <div class="login-card">
+    <p class="eyebrow">Story Engine</p>
+    <h1>Canal Humanos Primitivos</h1>
+    <p class="subtitle">Acesso restrito. Entre com sua conta para gerar prompts e consultar o histórico.</p>
+    <form id="form-login">
+      <label for="login-email">E-mail</label>
+      <input type="email" id="login-email" autocomplete="username" required />
+      <label for="login-senha">Senha</label>
+      <input type="password" id="login-senha" autocomplete="current-password" required />
+      <button type="submit" class="btn btn-primary">Entrar</button>
+      <p class="erro" id="login-erro" role="alert"></p>
+    </form>
+  </div>
+</section>
+
+<!-- APP PRINCIPAL -->
+<section id="tela-app" class="tela tela-app oculto">
+  <header class="topo">
+    <div class="topo-titulo">
+      <p class="eyebrow">Story Engine</p>
+      <h1>Canal Humanos Primitivos</h1>
+    </div>
+    <button id="btn-logout" class="btn btn-ghost">Sair</button>
+  </header>
+
+  <nav class="abas" role="tablist">
+    <button class="aba ativa" data-aba="gerar" role="tab" aria-selected="true">Gerar prompt</button>
+    <button class="aba" data-aba="pools" role="tab" aria-selected="false">Bancos</button>
+    <button class="aba" data-aba="historico" role="tab" aria-selected="false">Histórico</button>
+  </nav>
+
+  <!-- ABA: GERAR -->
+  <div class="painel" data-painel="gerar">
+    <div class="cartao">
+      <label for="input-titulo">Título exato do vídeo</label>
+      <input type="text" id="input-titulo" placeholder="Ex.: O animal que enganou todos os predadores da pré-história" />
+      <button id="btn-gerar" class="btn btn-primary">Gerar prompt</button>
+      <p class="status" id="status-gerar"></p>
+    </div>
+
+    <div class="cartao oculto" id="cartao-resultado">
+      <div class="cartao-cabecalho">
+        <h2>Prompt pronto</h2>
+        <button id="btn-copiar" class="btn btn-ghost">Copiar</button>
+      </div>
+      <textarea id="resultado-prompt" readonly spellcheck="false"></textarea>
+      <p class="dica">Cole isso numa conversa nova do Claude.ai. A única coisa que ele vai perguntar é a quantidade média de palavras.</p>
+      <details class="parametros">
+        <summary>Parâmetros sorteados nesta rodada</summary>
+        <pre id="parametros-detalhe"></pre>
+      </details>
+    </div>
+  </div>
+
+  <!-- ABA: POOLS -->
+  <div class="painel oculto" data-painel="pools">
+    <div class="cartao">
+      <div class="cartao-cabecalho">
+        <h2>Arquétipos de personagens</h2>
+      </div>
+      <div class="lista-editavel" id="lista-arquetipos"></div>
+      <div class="linha-adicionar">
+        <input type="text" id="novo-arquetipo" placeholder="Ex.: a curandeira do grupo" />
+        <button id="btn-add-arquetipo" class="btn btn-secundario">Adicionar</button>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-cabecalho">
+        <h2>Casos históricos / registros reais</h2>
+      </div>
+      <div class="lista-editavel" id="lista-casos"></div>
+      <div class="linha-adicionar">
+        <input type="text" id="novo-caso" placeholder="Ex.: as pegadas de Laetoli" />
+        <button id="btn-add-caso" class="btn btn-secundario">Adicionar</button>
+      </div>
+    </div>
+
+    <p class="status" id="status-pools"></p>
+
+    <div class="cartao cartao-importar">
+      <div class="cartao-cabecalho">
+        <h2>Importar pools.json existente</h2>
+      </div>
+      <p class="dica">Importação única: substitui os bancos acima pelo conteúdo do seu pools.json local.</p>
+      <input type="file" id="arquivo-pools" accept="application/json" />
+      <button id="btn-importar-pools" class="btn btn-secundario">Importar arquivo</button>
+      <p class="status" id="status-importar-pools"></p>
+    </div>
+  </div>
+
+  <!-- ABA: HISTÓRICO -->
+  <div class="painel oculto" data-painel="historico">
+    <div class="cartao cartao-importar">
+      <div class="cartao-cabecalho">
+        <h2>Importar historico_roteiros.json existente</h2>
+      </div>
+      <p class="dica">Importação única: acrescenta os roteiros do seu histórico local a este banco de dados.</p>
+      <input type="file" id="arquivo-historico" accept="application/json" />
+      <button id="btn-importar-historico" class="btn btn-secundario">Importar arquivo</button>
+      <p class="status" id="status-importar-historico"></p>
+    </div>
+
+    <div class="cartao">
+      <div class="cartao-cabecalho">
+        <h2>Roteiros gerados</h2>
+        <button id="btn-recarregar-historico" class="btn btn-ghost">Recarregar</button>
+      </div>
+      <div id="lista-historico" class="lista-historico"></div>
+      <button id="btn-mais-historico" class="btn btn-secundario oculto">Carregar mais</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
