@@ -121,13 +121,25 @@ tempo).
 Depois de configurado, é só abrir a URL em qualquer computador, logar, e
 usar normalmente:
 
-- **Gerar prompt**: digite o título, clique em gerar, copie o resultado e
-  cole numa conversa nova do Claude.ai. A única coisa que o Claude vai
-  perguntar é a quantidade média de palavras.
-- **Bancos**: adicione/remova arquétipos e casos históricos quando quiser,
-  de qualquer lugar.
-- **Histórico**: consulte os roteiros já gerados (estrutura usada, não o
-  texto do roteiro em si — isso continua sendo gerado pelo Claude no chat).
+1. **Gerar prompt**: digite o título e a duração desejada em minutos →
+   clique em "Gerar prompt". O app calcula a quantidade de palavras
+   sozinho (usando a configuração de "palavras por minuto" da tela —
+   ajuste isso se você descobrir a média real do seu TTS). Copie o
+   prompt e cole numa conversa nova do Claude.ai — ele já escreve o
+   roteiro direto, sem perguntar nada.
+2. **Mensagem de revisão**: depois que o Claude entregar o roteiro, copie
+   essa segunda caixa (aparece junto com o prompt) e cole como uma nova
+   mensagem na mesma conversa. Ela pede pro Claude revisar contagem de
+   palavras, humor situacional e micro-histórias no texto que ele mesmo
+   já escreveu.
+3. **Formatar**: cole o roteiro final (com ou sem a revisão do passo 2)
+   na aba Formatar e clique em "Formatar parágrafos". Isso garante,
+   sem depender de IA, que nenhum parágrafo passe de 3 frases — útil
+   pra narração em TTS.
+4. **Bancos**: adicione/remova arquétipos e casos históricos quando quiser,
+   de qualquer lugar.
+5. **Histórico**: consulte os roteiros já gerados (estrutura usada, não o
+   texto do roteiro em si — isso continua sendo gerado pelo Claude no chat).
 
 ## Sobre custos
 
