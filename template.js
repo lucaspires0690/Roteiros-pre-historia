@@ -263,6 +263,20 @@ texto corrido, sem títulos internos, sem marcação de blocos, sem listas, sem 
 Máximo 3 frases por parágrafo. Quebra simples entre parágrafos. Frases curtas de impacto podem aparecer sozinhas.
 
 ════════════════════════════════════════════════
+✅ AUTOVERIFICAÇÃO OBRIGATÓRIA ANTES DE ENTREGAR
+════════════════════════════════════════════════
+
+Antes de entregar a resposta final, conte a quantidade de palavras do roteiro que você escreveu. Para essa contagem: palavra é qualquer sequência de caracteres separada por espaço; o espaço em si NUNCA é contado como palavra nem como caractere — ele é só o separador.
+Se o total ficar abaixo de <<PALAVRAS_MIN>> palavras, expanda o roteiro internamente (mais profundidade nos ângulos do Bloco 3, mais detalhe sensorial, mais micro-histórias, mais reaberturas de curiosidade) e reescreva quantas vezes for preciso até atingir pelo menos <<PALAVRAS_MIN>> palavras.
+Se o total passar de <<PALAVRAS_MAX>> palavras, corte o excesso sem perder nenhuma das regras obrigatórias (perguntas retóricas, humor, micro-histórias).
+Confirme também, antes de entregar, que todos os mínimos abaixo foram realmente atingidos no texto final — não apenas planejados:
+- Pelo menos <<PERGUNTAS_MIN>> perguntas retóricas
+- Pelo menos <<HUMOR_MIN>> momentos de humor situacional
+- Entre 3 e 5 micro-histórias
+- Nenhum parágrafo com mais de 3 frases
+Essa verificação é estritamente interna. NUNCA exponha a contagem, o processo de revisão ou qualquer comentário sobre isso na resposta final — entregue apenas o roteiro já corrigido.
+
+════════════════════════════════════════════════
 📤 SAÍDA FINAL
 ════════════════════════════════════════════════
 
