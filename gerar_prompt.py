@@ -119,6 +119,16 @@ def escolher_lista_sem_repetir(pool, usados_recentes, quantidade):
     return disponiveis[:quantidade]
 
 
+def calcular_palavras_por_bloco(distribuicao_pct, palavras_alvo):
+    """Converte a % de cada bloco em número absoluto de palavras, pra dar
+    ao Claude um checkpoint concreto a cada bloco concluído — em vez de só
+    uma contagem geral no final, que na prática não funciona bem."""
+    return {
+        bloco: round(palavras_alvo * pct / 100)
+        for bloco, pct in distribuicao_pct.items()
+    }
+
+
 def calcular_parametros_de_duracao(minutos, ppm=PALAVRAS_POR_MINUTO_PADRAO):
     """Converte minutos desejados em quantidade de palavras (±10%) e já
     calcula o mínimo de perguntas retóricas e momentos de humor — tudo isso
@@ -233,13 +243,13 @@ Estes valores substituem quaisquer valores fixos usados em roteiros anteriores. 
 → Momentos de humor situacional: <<HUMOR_MIN>>
 → Limite de repetições consecutivas de qualquer estrutura/frase/sujeito: <<LIMITE_ANAFORA>> (na repetição seguinte, quebre completamente o padrão)
 → Distribuição de palavras por bloco (% do total de <<PALAVRAS_ALVO>> palavras definido acima):
-   B1 — Gancho → <<B1>>%
-   B2 — Origem → <<B2>>%
-   B3 — Desenvolvimento → <<B3>>%
-   B4 — Virada → <<B4>>%
-   B5 — Tensão → <<B5>>%
-   B6 — Revelação → <<B6>>%
-   B7 — Encerramento → <<B7>>%
+   B1 — Gancho → <<B1>>% (~<<PALAVRAS_B1>> palavras)
+   B2 — Origem → <<B2>>% (~<<PALAVRAS_B2>> palavras)
+   B3 — Desenvolvimento → <<B3>>% (~<<PALAVRAS_B3>> palavras)
+   B4 — Virada → <<B4>>% (~<<PALAVRAS_B4>> palavras)
+   B5 — Tensão → <<B5>>% (~<<PALAVRAS_B5>> palavras)
+   B6 — Revelação → <<B6>>% (~<<PALAVRAS_B6>> palavras)
+   B7 — Encerramento → <<B7>>% (~<<PALAVRAS_B7>> palavras)
 
 NÃO REUTILIZE estes personagens/situações (já usados em roteiros recentes deste canal):
 <<ARQUETIPOS_EVITAR>>
@@ -409,18 +419,20 @@ texto corrido, sem títulos internos, sem marcação de blocos, sem listas, sem 
 Máximo 3 frases por parágrafo. Quebra simples entre parágrafos. Frases curtas de impacto podem aparecer sozinhas.
 
 ════════════════════════════════════════════════
-✅ AUTOVERIFICAÇÃO OBRIGATÓRIA ANTES DE ENTREGAR
+✅ VERIFICAÇÃO PROGRESSIVA DE PALAVRAS (durante a escrita, bloco por bloco)
 ════════════════════════════════════════════════
 
-Antes de entregar a resposta final, conte a quantidade de palavras do roteiro que você escreveu. Para essa contagem: palavra é qualquer sequência de caracteres separada por espaço; o espaço em si NUNCA é contado como palavra nem como caractere — ele é só o separador.
-Se o total ficar abaixo de <<PALAVRAS_MIN>> palavras, expanda o roteiro internamente (mais profundidade nos ângulos do Bloco 3, mais detalhe sensorial, mais micro-histórias, mais reaberturas de curiosidade) e reescreva quantas vezes for preciso até atingir pelo menos <<PALAVRAS_MIN>> palavras.
-Se o total passar de <<PALAVRAS_MAX>> palavras, corte o excesso sem perder nenhuma das regras obrigatórias (perguntas retóricas, humor, micro-histórias).
-Confirme também, antes de entregar, que todos os mínimos abaixo foram realmente atingidos no texto final — não apenas planejados:
+Cada bloco tem um alvo de palavras definido na seção 🔁 Variação Estrutural acima. Ao terminar de escrever cada bloco, faça uma pausa interna e estime quantas palavras esse bloco tem.
+Se o bloco ficou visivelmente abaixo do alvo dele, complete antes de seguir adiante: acrescente mais detalhe sensorial, mais um ângulo, mais um momento de cena. Nunca avance para o próximo bloco enquanto o atual estiver muito abaixo do alvo dele.
+Se, ao terminar o Bloco 6, a soma estimada de todos os blocos ainda estiver abaixo de <<PALAVRAS_MIN>> palavras, use o Bloco 7 (Encerramento) para compensar a diferença, com mais profundidade contemplativa — nunca encurte o Bloco 7 para "economizar"; ele é o último recurso para fechar o total mínimo.
+Essa verificação é estritamente interna, feita silenciosamente entre um bloco e outro. NUNCA exponha contagens, comentários sobre isso, ou marcações como "Bloco 1 concluído" — a saída final deve ser só o roteiro corrido, sem nenhum rastro desse processo.
+
+Antes de entregar a resposta final, confirme também (sem expor isso na resposta) que o texto final realmente contém:
 - Pelo menos <<PERGUNTAS_MIN>> perguntas retóricas
 - Pelo menos <<HUMOR_MIN>> momentos de humor situacional
 - Entre 3 e 5 micro-histórias
 - Nenhum parágrafo com mais de 3 frases
-Essa verificação é estritamente interna. NUNCA exponha a contagem, o processo de revisão ou qualquer comentário sobre isso na resposta final — entregue apenas o roteiro já corrigido.
+Se o total geral passar de <<PALAVRAS_MAX>> palavras, corte o excesso sem perder nenhuma das regras obrigatórias acima.
 
 ════════════════════════════════════════════════
 📤 SAÍDA FINAL
@@ -454,6 +466,13 @@ def montar_prompt(params):
         "<<B5>>": str(params["distribuicao"]["B5"]),
         "<<B6>>": str(params["distribuicao"]["B6"]),
         "<<B7>>": str(params["distribuicao"]["B7"]),
+        "<<PALAVRAS_B1>>": str(params["palavras_por_bloco"]["B1"]),
+        "<<PALAVRAS_B2>>": str(params["palavras_por_bloco"]["B2"]),
+        "<<PALAVRAS_B3>>": str(params["palavras_por_bloco"]["B3"]),
+        "<<PALAVRAS_B4>>": str(params["palavras_por_bloco"]["B4"]),
+        "<<PALAVRAS_B5>>": str(params["palavras_por_bloco"]["B5"]),
+        "<<PALAVRAS_B6>>": str(params["palavras_por_bloco"]["B6"]),
+        "<<PALAVRAS_B7>>": str(params["palavras_por_bloco"]["B7"]),
         "<<ARQUETIPOS_EVITAR>>": "\n".join(f"- {a}" for a in params["arquetipos_evitar"]),
         "<<CASOS_EVITAR>>": "\n".join(f"- {c}" for c in params["casos_evitar"]),
     }
@@ -493,6 +512,7 @@ def main():
         "distribuicao": gerar_distribuicao_blocos(),
     }
     params.update(calcular_parametros_de_duracao(minutos))
+    params["palavras_por_bloco"] = calcular_palavras_por_bloco(params["distribuicao"], params["palavras_alvo"])
 
     arquetipos_usados = itens_usados_recentemente(historico, "arquetipos_usados")
     casos_usados = itens_usados_recentemente(historico, "casos_usados")

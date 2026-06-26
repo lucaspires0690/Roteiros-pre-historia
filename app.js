@@ -183,6 +183,14 @@ function calcularParametrosDeDuracao(minutos, ppm) {
   return { minutos, ppm, palavrasAlvo, palavrasMin, palavrasMax, perguntasMin, humorMin };
 }
 
+function calcularPalavrasPorBloco(distribuicaoPct, palavrasAlvo) {
+  const resultado = {};
+  for (const bloco in distribuicaoPct) {
+    resultado[bloco] = Math.round((palavrasAlvo * distribuicaoPct[bloco]) / 100);
+  }
+  return resultado;
+}
+
 function montarPrompt(params) {
   let texto = TEMPLATE;
   const substituicoes = {
@@ -202,6 +210,13 @@ function montarPrompt(params) {
     "<<B5>>": String(params.distribuicao.B5),
     "<<B6>>": String(params.distribuicao.B6),
     "<<B7>>": String(params.distribuicao.B7),
+    "<<PALAVRAS_B1>>": String(params.palavrasPorBloco.B1),
+    "<<PALAVRAS_B2>>": String(params.palavrasPorBloco.B2),
+    "<<PALAVRAS_B3>>": String(params.palavrasPorBloco.B3),
+    "<<PALAVRAS_B4>>": String(params.palavrasPorBloco.B4),
+    "<<PALAVRAS_B5>>": String(params.palavrasPorBloco.B5),
+    "<<PALAVRAS_B6>>": String(params.palavrasPorBloco.B6),
+    "<<PALAVRAS_B7>>": String(params.palavrasPorBloco.B7),
     "<<ARQUETIPOS_EVITAR>>": params.arquetipos_evitar.map((a) => `- ${a}`).join("\n"),
     "<<CASOS_EVITAR>>": params.casos_evitar.map((c) => `- ${c}`).join("\n"),
   };
@@ -255,12 +270,14 @@ btnGerar.addEventListener("click", async () => {
     const casosUsadosRecentes = itensUsadosRecentemente(historicoRecente, "casos_usados");
 
     const duracao = calcularParametrosDeDuracao(minutos, ppm);
+    const distribuicao = gerarDistribuicaoBlocos();
 
     const params = {
       titulo,
       ...duracao,
       limite_anafora: escolherNumeroSemRepetir([2, 3, 4], historicoRecente, "limite_anafora"),
-      distribuicao: gerarDistribuicaoBlocos(),
+      distribuicao,
+      palavrasPorBloco: calcularPalavrasPorBloco(distribuicao, duracao.palavrasAlvo),
       arquetipos_evitar: escolherListaSemRepetir(
         pools.arquetipos_personagens || [],
         arquetiposUsadosRecentes,
